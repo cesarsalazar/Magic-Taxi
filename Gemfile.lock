@@ -67,5 +67,6 @@ DEPENDENCIES
   dm-timestamps
   dm-types
   dm-validations
+  json
   sinatra
   sinatra-reloader
