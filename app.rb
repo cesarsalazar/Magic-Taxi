@@ -132,15 +132,27 @@ end
 
 ### Position
 
-get '/position/most_recent' do
-  interval = 5 #minutes
-  positions = repository(:default).adapter.select('SELECT distinct(`taxi_id`),`created_at` FROM `position` WHERE `status`=FALSE AND `created_at` > DATE_SUB(now(), INTERVAL '+interval+' MINUTE) AND ((6371*3.1415926*sqrt((`lat`-'+params[:latitude]+')*(`lat`-'+params[:latitude]+') +cos('+params[:latitude]+'/57.29578)*cos(`lat`/57.29578)*(-'+params[:longitude]+'-`lon`)*('+params[:longitude]+'-`lon`))/180)<3.0)')
+get '/position/all' do
+  content_type :json
+  positions = Position.all
+  raise 404 unless positions
+  return positions.to_json
+end
+
+get '/position/get_closest' do
+  content_type :json
+  lat = params[:latitude]
+  long = params[:longitude]
+  interval = 5
+  query_string = "SELECT distinct(`taxi_id`),`created_at` FROM `position` WHERE `status`=FALSE AND `created_at` > DATE_SUB(now(), INTERVAL #{interval} MINUTE) AND ((6371*3.1415926*sqrt((`latitude`-#{lat})*(`latitude`-#{lat}) +cos(#{lat}/57.29578)*cos(`lat`/57.29578)*(#{long}-`longitude`)*(#{long}-`longitude`))/180)<3.0)"
+  puts query_string
+  positions = repository(:default).adapter.select(query_string)
+  return positions.to_json
 end
 
 post '/position/create' do
   content_type :json
   taxi = Taxi.get(params[:taxi_id])
-  puts taxi
   position = taxi.positions.create(params)
   raise 500 unless position.saved?
   status 200
