@@ -7,6 +7,7 @@ require 'dm-timestamps'
 require 'dm-validations'
 require 'dm-serializer'
 require 'dm-types'
+require 'json'
 
 ###### Model 
 
@@ -15,14 +16,16 @@ DataMapper.setup(:default, ENV['DATABASE_URL'] || "sqlite3://#{Dir.pwd}/database
 class Taxi
   include DataMapper::Resource
   property  :id,              Serial
-  property  :first_name,      String,     :length => 100
-  property  :last_name,       String,     :length => 100
-  property  :license_plates,  String,     :key => true
+  property  :first_name,      String,     :required => true,  :length => 100
+  property  :last_name,       String,     :required => true,  :length => 100
+  property  :license_plates,  String,     :required => true
   property  :password,        BCryptHash, :required => true 
   property  :account_balance, Integer
   property  :score,           Integer
-  property  :latitude,        Float
-  property  :longitude,       Float
+  
+  has n, :trips
+  has n, :passengers, :through => :trips  
+  has n, :positions
 end
 
 class Trip
@@ -33,8 +36,8 @@ class Trip
   property  :destination,     String
   property  :created_at,      DateTime
   
-  has 1,  :taxi
-  has 1,  :passenger
+  belongs_to :taxi
+  belongs_to :passenger
 end
 
 class Passenger
@@ -43,6 +46,9 @@ class Passenger
   property  :first_name,      String,       :length =>  100
   property  :last_name,       String,       :length =>  100
   property  :mobile_phone,    String
+  
+  has n, :trips
+  has n, :taxis,  :through => :trips
 end
 
 class Position
@@ -50,9 +56,10 @@ class Position
   property  :id,              Serial
   property  :latitude,        Float
   property  :longitude,       Float
+  property  :status,          Boolean
   property  :created_at,      DateTime
   
-  has 1, :taxi
+  belongs_to :taxi
 end
 
 DataMapper.auto_upgrade!
@@ -62,16 +69,21 @@ DataMapper.auto_upgrade!
 ### Taxi
 
 get '/taxi/:id' do
-  raise 404 unless Taxi.get(params[:id]).to_json
+  content_type :json
+  taxi = Taxi.get(params[:id])
+  raise 404 unless taxi
+  return taxi.to_json
 end
 
 post '/taxi/create' do
+  content_type :json
   taxi = Taxi.create(params)
   raise 500 unless taxi.saved?
   return taxi.to_json
 end
 
 post '/taxi/update' do
+  content_type :json
   taxi = Taxi.get(params[:id])
   taxi.update(params)
   raise 500 unless taxi.saved?
@@ -81,10 +93,14 @@ end
 ### Trip
 
 get '/trip/:id' do
-  raise 404 unless Trip.get(params[:id]).to_json
+  content_type :json
+  trip = Trip.get(params[:id])
+  raise 404 unless trip
+  return trip.to_json
 end
 
 post '/trip/create' do
+  content_type :json
   trip = Trip.create(params)
   raise 500 unless trip.saved?
   return trip.to_json
@@ -93,16 +109,21 @@ end
 ### Passenger
 
 get '/passenger/:id' do
-  raise 404 unless Passenger.get(params[:id]).to_json
+  content_type :json
+  passenger = Passenger.get(params[:id]).to_json
+  raise 404 unless passenger
+  return passenger.to_json
 end
 
 post '/passenger/create' do
+  content_type :json
   passenger = Passenger.create(params)
   raise 500 unless passenger.saved?
   return passenger.to_json
 end
 
 post '/passenger/update' do
+  content_type :json
   passenger = Passenger.get(params[:id])
   passenger.update(params)
   raise 500 unless passenger.saved?
@@ -112,12 +133,17 @@ end
 ### Position
 
 get '/position/most_recent' do
-  positions = Position.all()
+  interval = 5 #minutes
+  positions = repository(:default).adapter.select('SELECT distinct(`taxi_id`),`created_at` FROM `position` WHERE `status`=FALSE AND `created_at` > DATE_SUB(now(), INTERVAL '+interval+' MINUTE) AND ((6371*3.1415926*sqrt((`lat`-'+params[:latitude]+')*(`lat`-'+params[:latitude]+') +cos('+params[:latitude]+'/57.29578)*cos(`lat`/57.29578)*(-'+params[:longitude]+'-`lon`)*('+params[:longitude]+'-`lon`))/180)<3.0)')
 end
 
 post '/position/create' do
-  position = Position.create(params)
+  content_type :json
+  taxi = Taxi.get(params[:taxi_id])
+  puts taxi
+  position = taxi.positions.create(params)
   raise 500 unless position.saved?
+  status 200
   return position.to_json
 end
 
