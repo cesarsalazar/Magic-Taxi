@@ -5,7 +5,7 @@ require 'dm-core'
 require 'dm-migrations'
 require 'dm-timestamps'
 require 'dm-validations'
-require 'dm-serializers'
+require 'dm-serializer'
 require 'dm-types'
 
 ###### Model 
@@ -27,14 +27,14 @@ end
 
 class Trip
   include DataMapper::Resource
-  property  :id,              String,   :required => true,  :default => lambda { |r, p| uuid }
+  property  :id,              String,   :key => true,  :default => lambda { |r, p| uuid }
   property  :latitude,        Float
   property  :longitude,       Float
   property  :destination,     String
   property  :created_at,      DateTime
   
-  has_one,  :taxi
-  has_one,  :passenger
+  has 1,  :taxi
+  has 1,  :passenger
 end
 
 class Passenger
@@ -52,7 +52,7 @@ class Position
   property  :longitude,       Float
   property  :created_at,      DateTime
   
-  has_one,  :taxi
+  has 1, :taxi
 end
 
 DataMapper.auto_upgrade!
