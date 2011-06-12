@@ -8,6 +8,8 @@ require 'dm-validations'
 require 'dm-serializer'
 require 'dm-types'
 require 'json'
+require 'net/http'
+require 'uri'
 
 ###### Model 
 
@@ -98,15 +100,47 @@ get '/trip/:id' do
   return trip.to_json
 end
 
+get '/test' do
+  content_type :json, 'charset' => 'utf-8'
+  url = URI.parse('http://maps.google.com/maps/api/geocode/json?sensor=false&address='+URI.escape(params['number']+", "+params['street']+", "+params['neighbourhood']))
+  response = JSON.parse(Net::HTTP.get(url).force_encoding('UTF-8'))
+  results = response['results']  
+  f = results[0]
+  geometry = f['geometry']
+  location = geometry['location']
+  lat = location['lat'].to_s
+  lng = location['lng'].to_s
+  
+  return lat,lng  
+end
+
 post '/trip/create' do
   content_type :json
   
-  # Jalar coordenadas
-  # Encontrar a los más cercanos
-  # Manda "message" a los taxis más cercanos
+  # Turn geo strings into geo coords
+  url = URI.parse('http://maps.google.com/maps/api/geocode/json?sensor=false&address='+URI.escape(params['number']+", "+params['street']+", "+params['neighbourhood']))
+  response = JSON.parse(Net::HTTP.get(url).force_encoding('UTF-8'))
+  results = response['results']  
+  f = results[0]
+  geometry = f['geometry']
+  location = geometry['location']
+  lat = location['lat']
+  long = location['lng']
   
+  # Find closest taxis
+  max_minutes = 20
+  query_string = 'SELECT DISTINCT ON(taxi_id) taxi_id,created_at FROM positions WHERE ((6371*3.1415926*sqrt((latitude-'+lat.to_s+')*(latitude-19.42705) +cos('+lat.to_s+'/57.29578)*cos(latitude/57.29578)*('+long.to_s+'-longitude)*('+long.to_s+'-longitude))/180)<3.0) AND status=FALSE AND EXTRACT(EPOCH FROM current_timestamp -created_at)/60 <'+max_minutes.to_s
+  puts query_string
+  results = repository(:default).adapter.select(query_string)
+  
+  # Notify closest taxis
+  results.each do | result |
+    #...
+  end
+
+  # Store new trip 
   passenger = Passenger.get(params[:passenger_id])
-  trip = passenger.trip.create(params)
+  trip = passenger.trip.create(:latitude => lat, :longitude => long, :destination => params[:destination])
   raise 500 unless trip.saved?
   return trip.to_json
 end
