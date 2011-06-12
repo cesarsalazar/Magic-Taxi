@@ -147,8 +147,8 @@ end
 
 get '/test2' do
   content_type :json
-  lat = 19.23544
-  long = -99.4321
+  lat = 19.425
+  long = -99.13
   max_minutes = 2000
   query_string = 'SELECT DISTINCT ON(taxi_id) taxi_id,created_at FROM positions WHERE ((6371*3.1415926*sqrt((latitude-'+lat.to_s+')*(latitude-19.42705) +cos('+lat.to_s+'/57.29578)*cos(latitude/57.29578)*('+long.to_s+'-longitude)*('+long.to_s+'-longitude))/180)<3.0) AND status=FALSE AND EXTRACT(EPOCH FROM current_timestamp -created_at)/60 <'+max_minutes.to_s
   puts query_string
