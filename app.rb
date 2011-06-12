@@ -144,7 +144,7 @@ get '/position/get_closest' do
   lat = params[:latitude]
   long = params[:longitude]
   interval = 5 #minutes
-  query_string = "SELECT distinct(`taxi_id`),`created_at` FROM `positions` WHERE `status`=FALSE AND (EXTRACT(EPOCH FROM now() - `created_at`)/60) < #{interval}  AND ((6371*3.1415926*sqrt((`latitude`-#{lat})*(`latitude`-#{lat}) +cos(#{lat}/57.29578)*cos(`lat`/57.29578)*(#{long}-`longitude`)*(#{long}-`longitude`))/180)<3.0)"
+  query_string = "SELECT DISTINCT ON(`taxi_id`),`created_at` FROM `positions` WHERE `status`=FALSE AND (EXTRACT(EPOCH FROM now() - `created_at`)/60) < #{interval}  AND ((6371*3.1415926*sqrt((`latitude`-#{lat})*(`latitude`-#{lat}) +cos(#{lat}/57.29578)*cos(`lat`/57.29578)*(#{long}-`longitude`)*(#{long}-`longitude`))/180)<3.0)"
   puts query_string
   positions = repository(:default).adapter.select(query_string)
   return positions.to_json
