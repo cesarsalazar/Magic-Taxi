@@ -151,12 +151,12 @@ get '/test2' do
   long = (-99.13).to_s
   puts lat
   puts long
-  max_minutes = 2000
+  max_minutes = 10000
   query_string = 'SELECT DISTINCT ON(taxi_id) taxi_id,created_at FROM positions WHERE ((6371*3.1415926*sqrt((latitude-'+lat+')*(latitude-19.42705) +cos('+lat+'/57.29578)*cos(latitude/57.29578)*('+long+'-longitude)*('+long+'-longitude))/180)<3.0) AND status=FALSE AND EXTRACT(EPOCH FROM current_timestamp -created_at)/60 <'+max_minutes.to_s
   puts query_string
   results = repository(:default).adapter.select(query_string)
   puts results
-  return results.to_json
+  return lat, long, results.to_json
 end
 
 post '/trip/confirm' do
