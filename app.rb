@@ -225,6 +225,21 @@ post '/position/create' do
   return position.to_json
 end
 
+get '/llenar_datos' do
+  Position.create(:latitude=>19.429059,:longitude=>-99.126302,:status=>false,:taxi_id=>1)
+  Position.create(:latitude=>19.429332,:longitude=>-99.127793,:status=>false,:taxi_id=>2)
+  Position.create(:latitude=>19.429059,:longitude=>-99.126302,:status=>false,:taxi_id=>3)
+  Position.create(:latitude=>19.427825,:longitude=>-99.127451,:status=>false,:taxi_id=>4)
+  Position.create(:latitude=>19.429009,:longitude=>-99.129746,:status=>false,:taxi_id=>5)
+  Position.create(:latitude=>19.429059,:longitude=>-99.126302,:status=>false,:taxi_id=>6)
+  Position.create(:latitude=>19.428118,:longitude=>-99.129993,:status=>false,:taxi_id=>7)
+  Position.create(:latitude=>19.429929,:longitude=>-99.134252,:status=>false,:taxi_id=>8)
+  Position.create(:latitude=>19.429606,:longitude=>-99.171352,:status=>false,:taxi_id=>9)  
+  Position.create(:latitude=>19.423717,:longitude=>-99.170558,:status=>false,:taxi_id=>10)  
+  Position.create(:latitude=>19.423717,:longitude=>-99.190772,:status=>false,:taxi_id=>11)  
+  Position.create(:latitude=>19.382733,:longitude=>-99.177682,:status=>false,:taxi_id=>12)  
+  Position.create(:latitude=>19.388907,:longitude=>-99.198668,:status=>false,:taxi_id=>13)
+end
 
 ###### Helpers
 
