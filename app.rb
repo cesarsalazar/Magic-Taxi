@@ -18,13 +18,11 @@ class Taxi
   property  :id,              Serial
   property  :first_name,      String,     :required => true,  :length => 100
   property  :last_name,       String,     :required => true,  :length => 100
-  property  :license_plates,  String,     :required => true
+  property  :license_plates,  String,     :unique => true
   property  :password,        BCryptHash, :required => true 
   property  :account_balance, Integer
   property  :score,           Integer
   
-  has n, :trips
-  has n, :passengers, :through => :trips  
   has n, :positions
 end
 
@@ -34,8 +32,9 @@ class Trip
   property  :latitude,        Float
   property  :longitude,       Float
   property  :destination,     String
+  property  :taxi_id,         String
   property  :created_at,      DateTime
-  
+
   belongs_to :taxi
   belongs_to :passenger
 end
@@ -101,9 +100,28 @@ end
 
 post '/trip/create' do
   content_type :json
-  trip = Trip.create(params)
+  
+  # Jalar coordenadas
+  # Encontrar a los más cercanos
+  # Manda "message" a los taxis más cercanos
+  
+  passenger = Passenger.get(params[:passenger_id])
+  trip = passenger.trip.create(params)
   raise 500 unless trip.saved?
   return trip.to_json
+end
+
+post '/trip/confirm' do
+  content_type :json
+  trip = Passenger.get(params[:id])
+  
+  #Actualiza el registro si no ha sido actualizado
+  #Manda SMS al usuario con código
+  
+  # if trip.taxi_id == nil
+  #   return trip.update(params[:taxi_id]).to_json if  
+  # else
+  
 end
 
 ### Passenger
