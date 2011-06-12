@@ -100,20 +100,6 @@ get '/trip/:id' do
   return trip.to_json
 end
 
-get '/test' do
-  content_type :json, 'charset' => 'utf-8'
-  url = URI.parse('http://maps.google.com/maps/api/geocode/json?sensor=false&address='+URI.escape(params['number']+", "+params['street']+", "+params['neighbourhood']))
-  response = JSON.parse(Net::HTTP.get(url).force_encoding('UTF-8'))
-  results = response['results']  
-  f = results[0]
-  geometry = f['geometry']
-  location = geometry['location']
-  lat = location['lat'].to_s
-  lng = location['lng'].to_s
-  
-  return lat,lng  
-end
-
 post '/trip/create' do
   content_type :json
   
@@ -121,42 +107,28 @@ post '/trip/create' do
   url = URI.parse('http://maps.google.com/maps/api/geocode/json?sensor=false&address='+URI.escape(params['number']+", "+params['street']+", "+params['neighbourhood']))
   response = JSON.parse(Net::HTTP.get(url).force_encoding('UTF-8'))
   results = response['results']  
-  f = results[0]
-  geometry = f['geometry']
-  location = geometry['location']
-  lat = location['lat']
-  long = location['lng']
+  foo = results[0]
+  geometry = foo['geometry']
+  location = geometry['location']  
+  lat = location['lat'].to_s
+  long = location['lng'].to_s
+  
+  # Store new trip 
+  passenger = Passenger.get(params[:passenger_id])
+  trip = passenger.trip.create(:latitude => lat, :longitude => long, :destination => params[:destination])
+  raise 500 unless trip.saved?
   
   # Find closest taxis
-  max_minutes = 20
-  query_string = 'SELECT DISTINCT ON(taxi_id) taxi_id,created_at FROM positions WHERE ((6371*3.1415926*sqrt((latitude-'+lat.to_s+')*(latitude-19.42705) +cos('+lat.to_s+'/57.29578)*cos(latitude/57.29578)*('+long.to_s+'-longitude)*('+long.to_s+'-longitude))/180)<3.0) AND status=FALSE AND EXTRACT(EPOCH FROM current_timestamp -created_at)/60 <'+max_minutes.to_s
-  puts query_string
-  results = repository(:default).adapter.select(query_string)
-  
+  max_minutes = 10
+  results = repository(:default).adapter.select('SELECT DISTINCT ON(taxi_id) taxi_id,created_at FROM positions WHERE ((6371*3.1415926*sqrt((latitude-'+lat+')*(latitude-19.42705) +cos('+lat+'/57.29578)*cos(latitude/57.29578)*('+long+'-longitude)*('+long+'-longitude))/180)<3.0) AND status=FALSE AND EXTRACT(EPOCH FROM current_timestamp -created_at)/60 <'+max_minutes.to_s)
+    
   # Notify closest taxis
   results.each do | result |
     #...
   end
 
-  # Store new trip 
-  passenger = Passenger.get(params[:passenger_id])
-  trip = passenger.trip.create(:latitude => lat, :longitude => long, :destination => params[:destination])
-  raise 500 unless trip.saved?
-  return trip.to_json
-end
 
-get '/test2' do
-  content_type :json
-  lat = (19.425).to_s
-  long = (-99.13).to_s
-  max_minutes = 10000
-  query_string = 'SELECT DISTINCT ON(taxi_id) taxi_id,created_at FROM positions WHERE ((6371*3.1415926*sqrt((latitude-'+lat+')*(latitude-19.42705) +cos('+lat+'/57.29578)*cos(latitude/57.29578)*('+long+'-longitude)*('+long+'-longitude))/180)<3.0) AND status=FALSE AND EXTRACT(EPOCH FROM current_timestamp -created_at)/60 <'+max_minutes.to_s
-  puts query_string
-  results = repository(:default).adapter.select(query_string)
-  results.each do | result|
-    puts result[:taxi_id]
-  end
-  return results.to_json
+  return trip.to_json
 end
 
 post '/trip/confirm' do
@@ -225,7 +197,7 @@ post '/position/create' do
   return position.to_json
 end
 
-get '/llenar_datos' do
+get '/populate_db' do
   Position.create(:latitude=>19.429059,:longitude=>-99.126302,:status=>false,:taxi_id=>1)
   Position.create(:latitude=>19.429332,:longitude=>-99.127793,:status=>false,:taxi_id=>2)
   Position.create(:latitude=>19.429059,:longitude=>-99.126302,:status=>false,:taxi_id=>3)
